@@ -137,7 +137,6 @@ def add_bounding_boxes(video_path, rekognition_data, output_path):
     video_capture.release()
     output_video.release()
 
-
 def draw_bounding_box(frame, box, frame_width, frame_height):
     print('Drawing bounding box')
     left = int(box['Left'] * frame_width)
