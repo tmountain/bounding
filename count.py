@@ -110,25 +110,24 @@ def add_bounding_boxes(video_path, rekognition_data, output_path):
     # Variables to store the latest bounding box data
     current_bounding_boxes = []
 
-    for label in rekognition_data['Labels']:
-        timestamp = label['Timestamp']
-
-        # Check if the label is 'Person' and update the bounding box data
-        if label['Label']['Name'] == 'Person':
-            current_bounding_boxes = [instance['BoundingBox'] for instance in label['Label']['Instances']]
-
-        # Set the frame position to the corresponding timestamp
-        frame_position = int((timestamp / 1000) * fps)
-        video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
-
-        # Read the frame at the given timestamp
+    while True:
+        # Read the next frame
         ret, frame = video_capture.read()
         if not ret:
             break
 
-        # Add bounding boxes to the frame
-        for box in current_bounding_boxes:
-            draw_bounding_box(frame, box, frame_width, frame_height)
+        # Check if there are any bounding boxes for the current frame
+        for label in rekognition_data['Labels']:
+            if label['Label']['Name'] == 'Person':
+                timestamp = label['Timestamp']
+                for instance in label['Label']['Instances']:
+                    instance_frame_position = int((timestamp / 1000) * fps)
+                    
+                    # Draw bounding box if the instance corresponds to the current frame
+                    if instance_frame_position == frame_count:
+                        box = instance['BoundingBox']
+                        draw_bounding_box(frame, box, frame_width, frame_height)
+                        current_bounding_boxes.append(box)
 
         # Write the modified frame to the output video
         output_video.write(frame)
@@ -137,6 +136,7 @@ def add_bounding_boxes(video_path, rekognition_data, output_path):
     # Release the video capture and writer
     video_capture.release()
     output_video.release()
+
 
 def draw_bounding_box(frame, box, frame_width, frame_height):
     print('Drawing bounding box')
