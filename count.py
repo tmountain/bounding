@@ -106,8 +106,8 @@ def add_bounding_boxes(video_path, rekognition_data, output_path):
     frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     output_video = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
     frame_count = 0
-
-    # Variables to store the latest bounding box data
+    last_instance_frame_position = 0
+    did_update = False
     current_bounding_boxes = []
 
     while True:
@@ -119,15 +119,27 @@ def add_bounding_boxes(video_path, rekognition_data, output_path):
         # Check if there are any bounding boxes for the current frame
         for label in rekognition_data['Labels']:
             if label['Label']['Name'] == 'Person':
+                # Variables to store the latest bounding box data
+
                 timestamp = label['Timestamp']
+                instance_frame_position = int((timestamp / 1000) * fps)
                 for instance in label['Label']['Instances']:
-                    instance_frame_position = int((timestamp / 1000) * fps)
+                    # apply the update to clear the bounding boxes somewhere in here...
                     
                     # Draw bounding box if the instance corresponds to the current frame
-                    if instance_frame_position == frame_count:
+                    if instance_frame_position <= frame_count and instance_frame_position > last_instance_frame_position:
+                        did_update = True
                         box = instance['BoundingBox']
-                        draw_bounding_box(frame, box, frame_width, frame_height)
                         current_bounding_boxes.append(box)
+                
+                if did_update:
+                    last_instance_frame_position = instance_frame_position
+                    did_update = False
+                    break
+            
+        if current_bounding_boxes:
+            for box in current_bounding_boxes:
+                draw_bounding_box(frame, box, frame_width, frame_height)
 
         # Write the modified frame to the output video
         output_video.write(frame)
@@ -251,10 +263,10 @@ bucket = 'rekognition-video-console-demo-iad-274478531841-1687175796'
 video_file = 'store.mp4'
 
 # Call the function to count people over time
-#count_people_over_time(bucket, video_file, interval_seconds)
+#count_people_over_time(bucket, video_file)
 
 # Test process_results function independently
-test_process_results()
+#test_process_results()
 
 # Generate a video with bounding boxes
 results = read_results_from_json()
